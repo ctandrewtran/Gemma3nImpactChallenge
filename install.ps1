@@ -10,6 +10,9 @@ if (-not (Get-Command docker-compose -ErrorAction SilentlyContinue)) {
     exit 1
 }
 
+Write-Color "==> Building the app Docker image locally..." Cyan
+docker build -t gemma3n-app:latest .
+
 Write-Color "==> Building and starting all services..." Cyan
 docker-compose up -d --build
 

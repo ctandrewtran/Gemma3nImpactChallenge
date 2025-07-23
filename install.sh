@@ -18,6 +18,9 @@ if ! command -v docker-compose &> /dev/null; then
     exit 1
 fi
 
+echo -e "${CYAN}==> Building the app Docker image locally...${NC}"
+docker build -t gemma3n-app:latest .
+
 echo -e "${CYAN}==> Building and starting all services...${NC}"
 docker-compose up -d --build
 
