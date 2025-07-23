@@ -51,4 +51,4 @@ Gemma3nImpactChallenge/
 - Milvus (vector DB)
 
 ## License
-MIT 
+Apache 2.0
