@@ -25,6 +25,7 @@ This project helps your community get fast, local answers from your town or coun
 **⚠️ IMPORTANT:**
 - **Windows:** Right-click PowerShell and choose **"Run as administrator"** before running the script below.
 - **Linux/macOS:** If you see a permission error, add `sudo` before the command (e.g., `sudo curl -s ... | bash`).
+- [docker system requirements](https://docs.docker.com/desktop/setup/install/windows-install/?uuid=97079F61-2695-4294-A290-A2101AC32837#system-requirements)
 
 **1. Open your computer's terminal:**
 - On **Windows**: Search for "PowerShell" in the Start menu and open it.
