@@ -3,6 +3,7 @@ function Write-Color($Text, $Color) { Write-Host $Text -ForegroundColor $Color }
 Write-Color "==> Checking for Docker..." Cyan
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
     Write-Color "Docker not found. Please install Docker Desktop from https://www.docker.com/products/docker-desktop/ and rerun this script." Red
+    Read-Host "Press Enter to exit..."
     exit 1
 } else {
     Write-Color "Docker is already installed." Green
@@ -14,12 +15,14 @@ try {
     Write-Color "Docker daemon is running." Green
 } catch {
     Write-Color "Docker is installed, but the Docker daemon is not running. Please start Docker Desktop and rerun this script." Red
+    Read-Host "Press Enter to exit..."
     exit 1
 }
 
 Write-Color "==> Checking for Docker Compose..." Cyan
 if (-not (Get-Command docker-compose -ErrorAction SilentlyContinue)) {
     Write-Color "Docker Compose not found. It should be included with Docker Desktop. Please ensure Docker Desktop is up to date." Yellow
+    Read-Host "Press Enter to exit..."
     exit 1
 } else {
     Write-Color "Docker Compose is already installed." Green
@@ -28,6 +31,7 @@ if (-not (Get-Command docker-compose -ErrorAction SilentlyContinue)) {
 # Check for docker-compose.yml
 if (-not (Test-Path "docker-compose.yml")) {
     Write-Color "docker-compose.yml not found in the current directory. Please make sure you are in the correct folder and the file exists." Red
+    Read-Host "Press Enter to exit..."
     exit 1
 }
 
@@ -36,6 +40,7 @@ $buildResult = docker build -t gemma3n-app:latest . 2>&1
 if ($LASTEXITCODE -ne 0) {
     Write-Color "Docker build failed with the following error:" Red
     Write-Color $buildResult Red
+    Read-Host "Press Enter to exit..."
     exit 1
 }
 
@@ -44,6 +49,7 @@ $composeResult = docker-compose up -d --build 2>&1
 if ($LASTEXITCODE -ne 0) {
     Write-Color "docker-compose up failed with the following error:" Red
     Write-Color $composeResult Red
+    Read-Host "Press Enter to exit..."
     exit 1
 }
 
@@ -62,4 +68,5 @@ while ($attempt -lt $maxAttempts) {
     $attempt++
 }
 Write-Color "App did not become healthy within 2 minutes. Please check Docker Desktop, logs, and try again." Red
+Read-Host "Press Enter to exit..."
 exit 1 

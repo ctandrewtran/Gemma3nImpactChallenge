@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# If you see a permission error, run this script with sudo:
+# sudo bash install.sh
+
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
@@ -7,6 +10,11 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 set -e
+
+function pause_for_debug() {
+    echo -e "${YELLOW}Press Enter to exit...${NC}"
+    read
+}
 
 function install_docker_ubuntu() {
     echo -e "${CYAN}==> Installing Docker (Ubuntu)...${NC}"
@@ -30,6 +38,7 @@ function install_docker_ubuntu() {
 
 function install_docker_mac() {
     echo -e "${CYAN}==> Please install Docker Desktop for Mac from https://www.docker.com/products/docker-desktop/ and rerun this script.${NC}"
+    pause_for_debug
     exit 1
 }
 
@@ -49,6 +58,7 @@ if ! command -v docker &> /dev/null; then
         install_docker_mac
     else
         echo -e "${RED}Unsupported OS: $OS. Please install Docker manually.${NC}"
+        pause_for_debug
         exit 1
     fi
 else
@@ -56,8 +66,9 @@ else
 fi
 
 # Check if Docker daemon is running
-if ! docker info &> /dev/null; then
+if ! sudo docker info &> /dev/null; then
     echo -e "${RED}Docker is installed, but the Docker daemon is not running. Please start Docker Desktop or the Docker service and rerun this script.${NC}"
+    pause_for_debug
     exit 1
 else
     echo -e "${GREEN}Docker daemon is running.${NC}"
@@ -73,24 +84,27 @@ fi
 # Check for docker-compose.yml
 if [ ! -f "docker-compose.yml" ]; then
     echo -e "${RED}docker-compose.yml not found in the current directory. Please make sure you are in the correct folder and the file exists.${NC}"
+    pause_for_debug
     exit 1
 fi
 
 echo -e "${CYAN}==> Building the app Docker image locally...${NC}"
-buildResult=$(docker build -t gemma3n-app:latest . 2>&1)
+buildResult=$(sudo docker build -t gemma3n-app:latest . 2>&1)
 buildCode=$?
 if [ $buildCode -ne 0 ]; then
     echo -e "${RED}Docker build failed with the following error:${NC}"
     echo -e "${RED}$buildResult${NC}"
+    pause_for_debug
     exit 1
 fi
 
 echo -e "${CYAN}==> Building and starting all services...${NC}"
-composeResult=$(docker-compose up -d --build 2>&1)
+composeResult=$(sudo docker-compose up -d --build 2>&1)
 composeCode=$?
 if [ $composeCode -ne 0 ]; then
     echo -e "${RED}docker-compose up failed with the following error:${NC}"
     echo -e "${RED}$composeResult${NC}"
+    pause_for_debug
     exit 1
 fi
 
@@ -98,7 +112,7 @@ echo -e "${CYAN}==> Waiting for services to become healthy...${NC}"
 max_attempts=24
 attempt=0
 while [[ $attempt -lt $max_attempts ]]; do
-    status=$(docker inspect --format='{{.State.Health.Status}}' gemma3n-app 2>/dev/null)
+    status=$(sudo docker inspect --format='{{.State.Health.Status}}' gemma3n-app 2>/dev/null)
     if [[ "$status" == "healthy" ]]; then
         echo -e "${GREEN}==> All services are running and healthy!${NC}"
         echo -e "${CYAN}==> Access the app at http://localhost:8050${NC}"
@@ -109,4 +123,5 @@ while [[ $attempt -lt $max_attempts ]]; do
     attempt=$((attempt+1))
 done
 echo -e "${RED}App did not become healthy within 2 minutes. Please check Docker, logs, and try again.${NC}"
+pause_for_debug
 exit 1 

@@ -22,6 +22,10 @@ This project helps your community get fast, local answers from your town or coun
 
 ## How to Set Up (No Experience Needed!)
 
+**⚠️ IMPORTANT:**
+- **Windows:** Right-click PowerShell and choose **"Run as administrator"** before running the script below.
+- **Linux/macOS:** If you see a permission error, add `sudo` before the command (e.g., `sudo curl -s ... | bash`).
+
 **1. Open your computer's terminal:**
 - On **Windows**: Search for "PowerShell" in the Start menu and open it.
 - On **Linux/macOS**: Open the "Terminal" app.
@@ -54,7 +58,7 @@ curl -s https://raw.githubusercontent.com/ctandrewtran/Gemma3nImpactChallenge/ma
 ---
 
 ## Troubleshooting & Tips
-- If you see a message about "permissions" or "admin rights," right-click PowerShell or Terminal and choose "Run as administrator."
+- If you see a message about "permissions" or "admin rights," right-click PowerShell or Terminal and choose "Run as administrator." On Linux/macOS, add `sudo` before the command if needed.
 - If you have questions, check the [official Docker documentation](https://docs.docker.com/get-docker/) or ask a local IT helper.
 - You can always review the install scripts before running them by opening them in Notepad or any text editor.
 
