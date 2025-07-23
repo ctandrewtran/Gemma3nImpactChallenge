@@ -100,7 +100,7 @@ def evaluator_agent(query, context_chunks):
     return response
 
 # --- Response Agent ---
-def response_agent(query, context_chunks, evaluation, section=None):
+def response_agent(query, context_chunks, evaluation, section=None, max_retries=2):
     """
     Generate a final answer with citations/links, trust-building language, and next steps.
     """
@@ -113,9 +113,17 @@ def response_agent(query, context_chunks, evaluation, section=None):
         f"Citations: {'; '.join(citations)}\n"
         f"Evaluation: {evaluation}\n"
         f"{section_info}"
-        "Write a clear, trustworthy answer for a user. You are acting on behalf of local government, keep your tone professional and informative. Include citations/links, next steps, and who to contact if more help is needed."
+        "Write a clear, trustworthy answer for a user. You are acting on behalf of local government, keep your tone professional and informative. When possible, directly quote from the provided information in your answer (use quotation marks). Include citations/links, next steps, and who to contact if more help is needed."
     )
-    return run_gemma3n(prompt)
+    for attempt in range(max_retries):
+        try:
+            response = run_gemma3n(prompt)
+            if response and response.strip() and not response.startswith("[Error"):
+                return response
+        except Exception:
+            pass
+    return ("Sorry, I was unable to generate an answer at this time. "
+            "Please try again or contact your local IT administrator.")
 
 # --- .gov URL Enforcement ---
 def is_gov_url(url):

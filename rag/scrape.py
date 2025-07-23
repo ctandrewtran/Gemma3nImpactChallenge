@@ -9,6 +9,7 @@ from .milvus_utils import insert_embeddings, register_index
 import os
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import tempfile
 
 try:
     from docling.document_converter import DocumentConverter
@@ -157,7 +158,7 @@ async def crawl_and_index_async(start_url, index_name=None):
     file_queue = []
     log_msgs = []
     file_stats = {"found": 0, "downloaded": 0, "processed": 0, "failed": 0, "skipped": 0, "errors": []}
-    temp_dir = "/tmp/website_files"
+    temp_dir = os.path.join(tempfile.gettempdir(), "website_files")
     async with aiohttp.ClientSession(headers={"User-Agent": "Gemma3nRAGBot/1.0"}) as session:
         while to_crawl:
             batch = to_crawl[:MAX_CONCURRENCY]
