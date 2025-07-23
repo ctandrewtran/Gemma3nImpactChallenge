@@ -2,7 +2,9 @@
 
 ## Welcome!
 
-This project helps your community get fast, local answers from your town or county website. It is designed for easy setup by anyone—even if you have very little IT experience.
+This project helps your community get fast, local answers from your town or county website. It is designed for easy setup by anyone with minimal IT experience.
+
+All processing takes place and all data is stored locally. Only egress it to scrape local town/county website to build a search index. Gemma 3n is used to generate answers.
 
 ---
 
