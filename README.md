@@ -50,6 +50,28 @@ curl -s https://raw.githubusercontent.com/ctandrewtran/Gemma3nImpactChallenge/ma
 
 ---
 
+## Windows: How to Update WSL (Windows Subsystem for Linux)
+
+If you are using Docker Desktop on Windows, it relies on WSL (Windows Subsystem for Linux) to run Linux containers. Sometimes, updating WSL can fix compatibility or startup issues with Docker.
+
+**To update WSL:**
+
+1. Open PowerShell as Administrator (right-click and choose "Run as administrator").
+2. Type the following command and press Enter:
+
+   ```powershell
+   wsl --update
+   ```
+
+**What does this do?**
+- This command updates the WSL kernel and related components to the latest version.
+- It can help resolve issues where Docker Desktop or Linux containers are not starting or behaving unexpectedly.
+- After updating, you may need to restart your computer or Docker Desktop.
+
+For more information, see the [official Microsoft WSL documentation](https://learn.microsoft.com/en-us/windows/wsl/).
+
+---
+
 ## What Happens Next?
 - The app will open at: [http://localhost:8050](http://localhost:8050)
 - You can use your web browser to access the admin panel and chat interface.
