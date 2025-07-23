@@ -8,14 +8,58 @@ NC='\033[0m'
 
 set -e
 
-echo -e "${CYAN}==> Checking for Docker and Docker Compose...${NC}"
+function install_docker_ubuntu() {
+    echo -e "${CYAN}==> Installing Docker (Ubuntu)...${NC}"
+    sudo apt-get update
+    sudo apt-get install -y \
+        ca-certificates \
+        curl \
+        gnupg \
+        lsb-release
+    sudo mkdir -p /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+      $(lsb_release -cs) stable" | \
+      sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    sudo apt-get update
+    sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+    sudo usermod -aG docker $USER
+    echo -e "${GREEN}==> Docker installed. You may need to log out and back in for group changes to take effect.${NC}"
+}
+
+function install_docker_mac() {
+    echo -e "${CYAN}==> Please install Docker Desktop for Mac from https://www.docker.com/products/docker-desktop/ and rerun this script.${NC}"
+    exit 1
+}
+
+function install_docker_compose() {
+    echo -e "${CYAN}==> Installing Docker Compose...${NC}"
+    sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    sudo chmod +x /usr/local/bin/docker-compose
+    echo -e "${GREEN}==> Docker Compose installed.${NC}"
+}
+
+echo -e "${CYAN}==> Checking for Docker...${NC}"
 if ! command -v docker &> /dev/null; then
-    echo -e "${RED}Docker not found. Please install Docker.${NC}"
-    exit 1
+    OS=$(uname -s)
+    if [[ "$OS" == "Linux" ]]; then
+        install_docker_ubuntu
+    elif [[ "$OS" == "Darwin" ]]; then
+        install_docker_mac
+    else
+        echo -e "${RED}Unsupported OS: $OS. Please install Docker manually.${NC}"
+        exit 1
+    fi
+else
+    echo -e "${GREEN}Docker is already installed.${NC}"
 fi
+
+echo -e "${CYAN}==> Checking for Docker Compose...${NC}"
 if ! command -v docker-compose &> /dev/null; then
-    echo -e "${RED}Docker Compose not found. Please install Docker Compose.${NC}"
-    exit 1
+    install_docker_compose
+else
+    echo -e "${GREEN}Docker Compose is already installed.${NC}"
 fi
 
 echo -e "${CYAN}==> Building the app Docker image locally...${NC}"
@@ -25,7 +69,6 @@ echo -e "${CYAN}==> Building and starting all services...${NC}"
 docker-compose up -d --build
 
 echo -e "${CYAN}==> Waiting for services to become healthy...${NC}"
-# Wait for app health
 while [[ $(docker inspect --format='{{.State.Health.Status}}' gemma3n-app 2>/dev/null) != "healthy" ]]; do
     echo -e "${YELLOW}Waiting for app to be healthy...${NC}"
     sleep 5
