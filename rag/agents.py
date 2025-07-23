@@ -113,7 +113,7 @@ def response_agent(query, context_chunks, evaluation, section=None):
         f"Citations: {'; '.join(citations)}\n"
         f"Evaluation: {evaluation}\n"
         f"{section_info}"
-        "Write a clear, trustworthy answer for a rural user. Include citations/links, next steps, and who to contact if more help is needed."
+        "Write a clear, trustworthy answer for a user. You are acting on behalf of local government, keep your tone professional and informative. Include citations/links, next steps, and who to contact if more help is needed."
     )
     return run_gemma3n(prompt)
 
@@ -140,10 +140,10 @@ def rag_pipeline(user_query):
     section = section_prediction_agent(translated_query, index_name)
     # 4. Query (section-aware)
     search_query, context_chunks = query_agent(translated_query, index_name, section=section)
-    # 5. Evaluate
-    evaluation = evaluator_agent(translated_query, context_chunks)
-    # 6. Respond
-    answer = response_agent(translated_query, context_chunks, evaluation, section=section)
+    # 5. Evaluate (use search_query)
+    evaluation = evaluator_agent(search_query, context_chunks)
+    # 6. Respond (use search_query)
+    answer = response_agent(search_query, context_chunks, evaluation, section=section)
     # 7. Collect citations
     citations = [c['url'] for c in context_chunks]
     return answer, citations
