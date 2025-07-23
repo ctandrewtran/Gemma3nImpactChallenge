@@ -1,96 +1,74 @@
 # Gemma3n Impact Challenge: Hyper-Local RAG System
 
-## Quick Start for Rural IT Admins
+## Welcome!
 
-This project is designed to be easy to install and run on Windows, Linux, or macOS. All you need is to run a single script—everything else (including Docker and Docker Compose) will be installed for you if needed.
-
----
-
-## 1. Prerequisites
-
-- **Windows:** No prerequisites. The script will prompt you to install Docker Desktop if it's not found.
-- **Linux/macOS:** No prerequisites. The script will install Docker and Docker Compose if not found.
+This project helps your community get fast, local answers from your town or county website. It is designed for easy setup by anyone—even if you have very little IT experience.
 
 ---
 
-## 2. One-Click Startup (Recommended)
+## Recommended System Requirements
 
-### Windows (PowerShell)
+- **Operating System:**
+  - Windows 10/11 (64-bit)
+  - Ubuntu Linux 20.04+ (64-bit)
+  - macOS 12+ (Intel or Apple Silicon)
+- **Processor:** Dual-core or better (Intel i3/i5/i7, AMD Ryzen, Apple M1/M2, etc.)
+- **Memory (RAM):** 8 GB minimum (16 GB recommended for best performance)
+- **Storage:** 30 GB free disk space
+- **Internet:** Required for first-time setup (downloads software and models)
+- **Admin Rights:** You may need to approve software installation (especially on Windows)
 
-**Option 1: Download and run the script**
+---
 
-1. Download the installer script:
-   ```powershell
-   curl -o install.ps1 https://raw.githubusercontent.com/ctandrewtran/Gemma3nImpactChallenge/main/install.ps1
-   ```
-2. Run the script in PowerShell:
-   ```powershell
-   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-   .\install.ps1
-   ```
+## How to Set Up (No Experience Needed!)
 
-**Option 2: Run directly from URL (if allowed)**
+**1. Open your computer's terminal:**
+- On **Windows**: Search for "PowerShell" in the Start menu and open it.
+- On **Linux/macOS**: Open the "Terminal" app.
 
-> Note: PowerShell does not natively support piping remote scripts to PowerShell as simply as Bash, but you can use `iex` (Invoke-Expression) with `irm` (Invoke-RestMethod):
+**2. Copy and paste ONE of these commands and press Enter:**
+
+### For Windows (PowerShell)
 
 ```powershell
 irm https://raw.githubusercontent.com/ctandrewtran/Gemma3nImpactChallenge/main/install.ps1 | iex
 ```
 
----
-
-### Linux/macOS (Bash)
-
-**Option 1: Download and run the script**
-
-1. Download the installer script:
-   ```bash
-   curl -O https://raw.githubusercontent.com/ctandrewtran/Gemma3nImpactChallenge/main/install.sh
-   chmod +x install.sh
-   ./install.sh
-   ```
-
-**Option 2: Run directly from URL**
+### For Linux/macOS (Bash)
 
 ```bash
 curl -s https://raw.githubusercontent.com/ctandrewtran/Gemma3nImpactChallenge/main/install.sh | bash
 ```
 
----
-
-## 3. After Installation
-
-- The app will be available at: [http://localhost:8050](http://localhost:8050)
-- All services (Milvus, Ollama, and the app) will run in Docker containers.
+**That's it!**
+- The script will check your system, install Docker and everything else needed, and start the app for you.
+- If you are on Windows and don't have Docker Desktop, the script will tell you how to install it.
 
 ---
 
-## 4. Security Note
-
-> **Always review scripts before running them from the internet.**
-> You can open `install.sh` or `install.ps1` in a text editor to inspect the contents before executing.
-
----
-
-## 5. Troubleshooting
-
-- Make sure Docker and Docker Compose are running (the script will install them if missing).
-- If you see permission errors, try running your terminal as Administrator (Windows) or with `sudo` (Linux/macOS).
-- For more help, see the [official Docker documentation](https://docs.docker.com/get-docker/).
+## What Happens Next?
+- The app will open at: [http://localhost:8050](http://localhost:8050)
+- You can use your web browser to access the admin panel and chat interface.
+- All data stays on your computer—nothing is sent to the cloud.
 
 ---
 
-## 6. Notes
+## Troubleshooting & Tips
+- If you see a message about "permissions" or "admin rights," right-click PowerShell or Terminal and choose "Run as administrator."
+- If you have questions, check the [official Docker documentation](https://docs.docker.com/get-docker/) or ask a local IT helper.
+- You can always review the install scripts before running them by opening them in Notepad or any text editor.
 
-- There is no `.bat` script provided. Use `install.ps1` for Windows and `install.sh` for Linux/macOS.
-- The installer will build the app Docker image locally and start all services.
-- Minimal setup required—just run the script!
+---
+
+## Important Notes
+- **No technical experience required!**
+- The script will install everything for you.
+- No `.bat` file is needed—use the PowerShell or Bash script above.
+- The app runs on your computer, not in the cloud.
 
 ---
 
 ## Example: Run Bash Script from URL
-
-You can run a bash script directly from a URL using:
 
 ```bash
 curl -s https://raw.githubusercontent.com/ctandrewtran/Gemma3nImpactChallenge/main/install.sh | bash
@@ -101,8 +79,6 @@ curl -s https://raw.githubusercontent.com/ctandrewtran/Gemma3nImpactChallenge/ma
 ---
 
 ## Example: Run PowerShell Script from URL
-
-You can run a PowerShell script directly from a URL using:
 
 ```powershell
 irm https://raw.githubusercontent.com/ctandrewtran/Gemma3nImpactChallenge/main/install.ps1 | iex
