@@ -1,0 +1,13 @@
+dash
+flask
+flask-login
+dash-bootstrap-components
+dash-chat
+requests
+beautifulsoup4
+pymilvus
+apscheduler
+langdetect
+ollama-client
+sqlite3
+docling 
