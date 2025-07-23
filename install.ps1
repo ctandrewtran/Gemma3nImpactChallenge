@@ -25,19 +25,25 @@ if (-not (Get-Command docker-compose -ErrorAction SilentlyContinue)) {
     Write-Color "Docker Compose is already installed." Green
 }
 
+# Check for docker-compose.yml
+if (-not (Test-Path "docker-compose.yml")) {
+    Write-Color "docker-compose.yml not found in the current directory. Please make sure you are in the correct folder and the file exists." Red
+    exit 1
+}
+
 Write-Color "==> Building the app Docker image locally..." Cyan
-try {
-    docker build -t gemma3n-app:latest .
-} catch {
-    Write-Color "Docker build failed. Please check your Docker installation and try again." Red
+$buildResult = docker build -t gemma3n-app:latest . 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Color "Docker build failed with the following error:" Red
+    Write-Color $buildResult Red
     exit 1
 }
 
 Write-Color "==> Building and starting all services..." Cyan
-try {
-    docker-compose up -d --build
-} catch {
-    Write-Color "docker-compose up failed. Please check your docker-compose.yml and try again." Red
+$composeResult = docker-compose up -d --build 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Color "docker-compose up failed with the following error:" Red
+    Write-Color $composeResult Red
     exit 1
 }
 

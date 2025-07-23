@@ -70,15 +70,27 @@ else
     echo -e "${GREEN}Docker Compose is already installed.${NC}"
 fi
 
+# Check for docker-compose.yml
+if [ ! -f "docker-compose.yml" ]; then
+    echo -e "${RED}docker-compose.yml not found in the current directory. Please make sure you are in the correct folder and the file exists.${NC}"
+    exit 1
+fi
+
 echo -e "${CYAN}==> Building the app Docker image locally...${NC}"
-if ! docker build -t gemma3n-app:latest .; then
-    echo -e "${RED}Docker build failed. Please check your Docker installation and try again.${NC}"
+buildResult=$(docker build -t gemma3n-app:latest . 2>&1)
+buildCode=$?
+if [ $buildCode -ne 0 ]; then
+    echo -e "${RED}Docker build failed with the following error:${NC}"
+    echo -e "${RED}$buildResult${NC}"
     exit 1
 fi
 
 echo -e "${CYAN}==> Building and starting all services...${NC}"
-if ! docker-compose up -d --build; then
-    echo -e "${RED}docker-compose up failed. Please check your docker-compose.yml and try again.${NC}"
+composeResult=$(docker-compose up -d --build 2>&1)
+composeCode=$?
+if [ $composeCode -ne 0 ]; then
+    echo -e "${RED}docker-compose up failed with the following error:${NC}"
+    echo -e "${RED}$composeResult${NC}"
     exit 1
 fi
 
