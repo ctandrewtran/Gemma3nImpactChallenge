@@ -55,6 +55,14 @@ else
     echo -e "${GREEN}Docker is already installed.${NC}"
 fi
 
+# Check if Docker daemon is running
+if ! docker info &> /dev/null; then
+    echo -e "${RED}Docker is installed, but the Docker daemon is not running. Please start Docker Desktop or the Docker service and rerun this script.${NC}"
+    exit 1
+else
+    echo -e "${GREEN}Docker daemon is running.${NC}"
+fi
+
 echo -e "${CYAN}==> Checking for Docker Compose...${NC}"
 if ! command -v docker-compose &> /dev/null; then
     install_docker_compose
@@ -63,16 +71,30 @@ else
 fi
 
 echo -e "${CYAN}==> Building the app Docker image locally...${NC}"
-docker build -t gemma3n-app:latest .
+if ! docker build -t gemma3n-app:latest .; then
+    echo -e "${RED}Docker build failed. Please check your Docker installation and try again.${NC}"
+    exit 1
+fi
 
 echo -e "${CYAN}==> Building and starting all services...${NC}"
-docker-compose up -d --build
+if ! docker-compose up -d --build; then
+    echo -e "${RED}docker-compose up failed. Please check your docker-compose.yml and try again.${NC}"
+    exit 1
+fi
 
 echo -e "${CYAN}==> Waiting for services to become healthy...${NC}"
-while [[ $(docker inspect --format='{{.State.Health.Status}}' gemma3n-app 2>/dev/null) != "healthy" ]]; do
+max_attempts=24
+attempt=0
+while [[ $attempt -lt $max_attempts ]]; do
+    status=$(docker inspect --format='{{.State.Health.Status}}' gemma3n-app 2>/dev/null)
+    if [[ "$status" == "healthy" ]]; then
+        echo -e "${GREEN}==> All services are running and healthy!${NC}"
+        echo -e "${CYAN}==> Access the app at http://localhost:8050${NC}"
+        exit 0
+    fi
     echo -e "${YELLOW}Waiting for app to be healthy...${NC}"
     sleep 5
+    attempt=$((attempt+1))
 done
-
-echo -e "${GREEN}==> All services are running and healthy!${NC}"
-echo -e "${CYAN}==> Access the app at http://localhost:8050${NC}" 
+echo -e "${RED}App did not become healthy within 2 minutes. Please check Docker, logs, and try again.${NC}"
+exit 1 

@@ -8,6 +8,15 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
     Write-Color "Docker is already installed." Green
 }
 
+# Check if Docker daemon is running
+try {
+    docker info | Out-Null
+    Write-Color "Docker daemon is running." Green
+} catch {
+    Write-Color "Docker is installed, but the Docker daemon is not running. Please start Docker Desktop and rerun this script." Red
+    exit 1
+}
+
 Write-Color "==> Checking for Docker Compose..." Cyan
 if (-not (Get-Command docker-compose -ErrorAction SilentlyContinue)) {
     Write-Color "Docker Compose not found. It should be included with Docker Desktop. Please ensure Docker Desktop is up to date." Yellow
@@ -17,16 +26,34 @@ if (-not (Get-Command docker-compose -ErrorAction SilentlyContinue)) {
 }
 
 Write-Color "==> Building the app Docker image locally..." Cyan
-docker build -t gemma3n-app:latest .
-
-Write-Color "==> Building and starting all services..." Cyan
-docker-compose up -d --build
-
-Write-Color "==> Waiting for services to become healthy..." Cyan
-while ((docker inspect --format='{{.State.Health.Status}}' gemma3n-app 2>$null) -ne "healthy") {
-    Write-Color "Waiting for app to be healthy..." Yellow
-    Start-Sleep -Seconds 5
+try {
+    docker build -t gemma3n-app:latest .
+} catch {
+    Write-Color "Docker build failed. Please check your Docker installation and try again." Red
+    exit 1
 }
 
-Write-Color "==> All services are running and healthy!" Green
-Write-Color "==> Access the app at http://localhost:8050" Cyan 
+Write-Color "==> Building and starting all services..." Cyan
+try {
+    docker-compose up -d --build
+} catch {
+    Write-Color "docker-compose up failed. Please check your docker-compose.yml and try again." Red
+    exit 1
+}
+
+Write-Color "==> Waiting for services to become healthy..." Cyan
+$maxAttempts = 24
+$attempt = 0
+while ($attempt -lt $maxAttempts) {
+    $status = docker inspect --format='{{.State.Health.Status}}' gemma3n-app 2>$null
+    if ($status -eq "healthy") {
+        Write-Color "==> All services are running and healthy!" Green
+        Write-Color "==> Access the app at http://localhost:8050" Cyan
+        exit 0
+    }
+    Write-Color "Waiting for app to be healthy..." Yellow
+    Start-Sleep -Seconds 5
+    $attempt++
+}
+Write-Color "App did not become healthy within 2 minutes. Please check Docker Desktop, logs, and try again." Red
+exit 1 
