@@ -26,28 +26,27 @@ All processing takes place and all data is stored locally. Only egress it to scr
 
 **⚠️ IMPORTANT:**
 - **You must have [Git installed](https://git-scm.com/download/) before running the install script.**
-- **Windows:** The script will now automatically update WSL (Windows Subsystem for Linux) before setup.
-- **Both Windows and Linux/macOS:** If you run the install script in a folder that does not contain this repo, it will automatically clone the repository so that `docker-compose.yml` and all files are available for setup.
-- **Windows:** Right-click PowerShell and choose **"Run as administrator"** before running the script below.
-- **Linux/macOS:** If you see a permission error, add `sudo` before the command (e.g., `sudo curl -s ... | bash`).
-- **Docker running in Windows** may require extra setup/help. See the [docker system requirements](https://docs.docker.com/desktop/setup/install/windows-install/?uuid=97079F61-2695-4294-A290-A2101AC32837#system-requirements)
+- **Linux/macOS/WSL:** Use the wget command below for the easiest installation experience.
+- **Windows:** We recommend using [WSL (Windows Subsystem for Linux)](https://learn.microsoft.com/en-us/windows/wsl/) and running the install script from your WSL terminal for best results.
+- **Windows:** Right-click PowerShell and choose **"Run as administrator"** before running the script below if you are not using WSL.
+- **Docker running in Windows** may require extra setup/help. See the [docker system requirements](https://docs.docker.com/desktop/setup/install/windows-install/?uuid=97079F61-2695-4294-A2901AC32837#system-requirements)
 
-**1. Open your computer's terminal:**
-- On **Windows**: Search for "PowerShell" in the Start menu and open it.
-- On **Linux/macOS**: Open the "Terminal" app.
+**1. Open your terminal:**
+- On **Linux/macOS/WSL**: Open your terminal app.
+- On **Windows**: Open your WSL terminal (recommended) or PowerShell.
 
-**2. Copy and paste ONE of these commands and press Enter:**
+**2. Copy and paste this command and press Enter:**
 
-### For Windows (PowerShell)
+### For Linux/macOS/WSL (Recommended)
+
+```bash
+wget -O - https://raw.githubusercontent.com/ctandrewtran/Gemma3nImpactChallenge/main/install.sh | bash
+```
+
+### For Windows (PowerShell, if not using WSL)
 
 ```powershell
 irm https://raw.githubusercontent.com/ctandrewtran/Gemma3nImpactChallenge/main/install.ps1 | iex
-```
-
-### For Linux/macOS (Bash)
-
-```bash
-curl -s https://raw.githubusercontent.com/ctandrewtran/Gemma3nImpactChallenge/main/install.sh | bash
 ```
 
 **That's it!**
