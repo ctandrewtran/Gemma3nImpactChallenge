@@ -5,7 +5,7 @@ from urllib.parse import urljoin, urlparse
 import time
 from datetime import datetime
 from .ollama_utils import generate_embedding, run_gemma3n
-from .milvus_utils import insert_embeddings, register_index
+from .milvus_utils import insert_embeddings, register_index, chunk_exists
 import os
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -237,10 +237,19 @@ async def crawl_and_index_async(start_url, index_name=None):
         file_stats["failed"] += 1
         file_stats["errors"].append((path, err))
         log_msgs.append(f"Failed to process file: {path} | Error: {err}")
-    # Index all embeddings
+    # Index all embeddings (deduplicated)
     if all_embeddings:
-        insert_embeddings(all_embeddings, all_metadatas, index_name=index_name)
-        log_msgs.append(f"Indexed {len(all_embeddings)} chunks from {len(seen_urls)} pages and {file_stats['processed']} files into index '{index_name or 'rag_documents'}'.")
+        dedup_embeddings = []
+        dedup_metadatas = []
+        for emb, meta in zip(all_embeddings, all_metadatas):
+            if not chunk_exists(meta["url"], meta["text"], meta["date"], index_name=index_name):
+                dedup_embeddings.append(emb)
+                dedup_metadatas.append(meta)
+        if dedup_embeddings:
+            insert_embeddings(dedup_embeddings, dedup_metadatas, index_name=index_name)
+            log_msgs.append(f"Indexed {len(dedup_embeddings)} new (deduplicated) chunks from {len(seen_urls)} pages and {file_stats['processed']} files into index '{index_name or 'rag_documents'}'.")
+        else:
+            log_msgs.append(f"No new (deduplicated) content indexed for index '{index_name or 'rag_documents'}'.")
     else:
         log_msgs.append(f"No content indexed for index '{index_name or 'rag_documents'}'.")
     # Write log

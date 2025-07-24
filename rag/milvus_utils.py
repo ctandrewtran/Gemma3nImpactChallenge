@@ -95,4 +95,18 @@ def register_index(index_name: str, description: str, domain: str):
     """
     Register a new index (collection) in the registry.
     """
-    INDEX_REGISTRY[index_name] = {"description": description, "domain": domain} 
+    INDEX_REGISTRY[index_name] = {"description": description, "domain": domain}
+
+
+def chunk_exists(url: str, text: str, date: str, index_name: Optional[str] = None) -> bool:
+    """
+    Check if a chunk with the same url, text, and date already exists in the index.
+    """
+    col = connect_milvus(index_name)
+    expr = f'url == "{url}" && text == "{text}" && date == "{date}"'
+    try:
+        results = col.query(expr=expr, output_fields=["url", "text", "date"])
+        return len(results) > 0
+    except Exception as e:
+        print(f"[Milvus] Query error: {e}")
+        return False 
