@@ -130,8 +130,11 @@ def response_node(state):
     context_text = "\n".join([c['text'] for c in context_chunks])
     citations = [f"Source: {c['url']} (Indexed: {c['date']})" for c in context_chunks]
     section_info = f"Section searched: {section}\n" if section else ""
-    # Provide contacts as a resource, not as part of the answer unless needed
-    contacts_instruction = (f"\nIf you determine the user needs to contact someone, you may use the following contact info: {', '.join(contacts)}" if contacts else "")
+    # Provide contacts as a resource, but instruct to only use the most relevant one(s)
+    contacts_instruction = (
+        f"\nIf you determine the user needs to contact someone, select and include only the most relevant contact(s) from the following list, based on the user's question and the context. Do NOT list all contacts. Only present the contact(s) that best match the topic or section of the user's query: {', '.join(contacts)}"
+        if contacts else ""
+    )
     prompt = (
         f"User question: {query}\n"
         f"Relevant information: {context_text}\n"
