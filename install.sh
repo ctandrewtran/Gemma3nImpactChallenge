@@ -81,11 +81,21 @@ else
     echo -e "${GREEN}Docker Compose is already installed.${NC}"
 fi
 
-# Check for docker-compose.yml
+# Clone the repo if docker-compose.yml is not present
 if [ ! -f "docker-compose.yml" ]; then
-    echo -e "${RED}docker-compose.yml not found in the current directory. Please make sure you are in the correct folder and the file exists.${NC}"
-    pause_for_debug
-    exit 1
+    echo -e "${CYAN}docker-compose.yml not found. Cloning the repository...${NC}"
+    if ! command -v git &> /dev/null; then
+        echo -e "${RED}Git is not installed. Please install Git and rerun this script.${NC}"
+        pause_for_debug
+        exit 1
+    fi
+    git clone https://github.com/ctandrewtran/Gemma3nImpactChallenge.git .
+    if [ ! -f "docker-compose.yml" ]; then
+        echo -e "${RED}Failed to clone the repository or docker-compose.yml still not found.${NC}"
+        pause_for_debug
+        exit 1
+    fi
+    echo -e "${GREEN}Repository cloned successfully.${NC}"
 fi
 
 echo -e "${CYAN}==> Building the app Docker image locally...${NC}"

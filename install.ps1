@@ -28,6 +28,32 @@ if (-not (Get-Command docker-compose -ErrorAction SilentlyContinue)) {
     Write-Color "Docker Compose is already installed." Green
 }
 
+# Update WSL before proceeding
+Write-Color "==> Updating WSL (Windows Subsystem for Linux)..." Cyan
+try {
+    wsl --update | Out-Null
+    Write-Color "WSL updated successfully." Green
+} catch {
+    Write-Color "WSL update failed or not needed." Yellow
+}
+
+# Clone the repo if docker-compose.yml is not present
+if (-not (Test-Path "docker-compose.yml")) {
+    Write-Color "docker-compose.yml not found. Cloning the repository..." Cyan
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+        Write-Color "Git is not installed. Please install Git and rerun this script." Red
+        Read-Host "Press Enter to exit..."
+        exit 1
+    }
+    git clone https://github.com/ctandrewtran/Gemma3nImpactChallenge.git .
+    if (-not (Test-Path "docker-compose.yml")) {
+        Write-Color "Failed to clone the repository or docker-compose.yml still not found." Red
+        Read-Host "Press Enter to exit..."
+        exit 1
+    }
+    Write-Color "Repository cloned successfully." Green
+}
+
 # Check for docker-compose.yml
 if (-not (Test-Path "docker-compose.yml")) {
     Write-Color "docker-compose.yml not found in the current directory. Please make sure you are in the correct folder and the file exists." Red

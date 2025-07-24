@@ -25,6 +25,8 @@ All processing takes place and all data is stored locally. Only egress it to scr
 ## How to Set Up (No Experience Needed!)
 
 **⚠️ IMPORTANT:**
+- **Windows:** The script will now automatically update WSL (Windows Subsystem for Linux) before setup.
+- **Both Windows and Linux/macOS:** If you run the install script in a folder that does not contain this repo, it will automatically clone the repository so that `docker-compose.yml` and all files are available for setup.
 - **Windows:** Right-click PowerShell and choose **"Run as administrator"** before running the script below.
 - **Linux/macOS:** If you see a permission error, add `sudo` before the command (e.g., `sudo curl -s ... | bash`).
 - **Docker running in Windows** may require extra setup/help. See the [docker system requirements](https://docs.docker.com/desktop/setup/install/windows-install/?uuid=97079F61-2695-4294-A290-A2101AC32837#system-requirements)
@@ -48,7 +50,7 @@ curl -s https://raw.githubusercontent.com/ctandrewtran/Gemma3nImpactChallenge/ma
 ```
 
 **That's it!**
-- The script will check your system, install Docker and everything else needed, and start the app for you.
+- The script will check your system, update WSL (on Windows), clone the repository if needed, install Docker and everything else needed, and start the app for you.
 - If you are on Windows and don't have Docker Desktop, the script will tell you how to install it.
 
 ---
