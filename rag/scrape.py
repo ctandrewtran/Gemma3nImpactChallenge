@@ -11,6 +11,9 @@ import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import tempfile
 import re
+from docling.datamodel.base_models import InputFormat
+from docling.datamodel.pipeline_options import PdfPipelineOptions
+from docling.document_converter import PdfFormatOption
 
 try:
     from docling.document_converter import DocumentConverter
@@ -72,20 +75,31 @@ def download_file(url, dest_folder):
         return None, str(e)
 
 
-def process_files_with_docling(file_paths, max_workers=4):
+def process_files_with_docling(file_paths):
     if not DocumentConverter:
         return [], [(p, "Docling not installed") for p in file_paths]
-    converter = DocumentConverter()
+    # Set up fast PDF options
+    pdf_pipeline_options = PdfPipelineOptions()
+    pdf_pipeline_options.do_ocr = False  # Disable OCR for speed
+    pdf_pipeline_options.do_table_structure = False  # Disable table extraction
+    # Use PyMuPDF/fitz backend if available (Docling auto-selects fastest, but we can be explicit)
+    format_options = {
+        InputFormat.PDF: PdfFormatOption(
+            pipeline_options=pdf_pipeline_options,
+            output_format='markdown'  # Export as plain text for speed
+        )
+    }
+    converter = DocumentConverter(format_options=format_options)
     results = []
     errors = []
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+    with ThreadPoolExecutor() as executor:
         future_to_file = {executor.submit(converter.convert, path): path for path in file_paths}
         for future in as_completed(future_to_file):
             path = future_to_file[future]
             try:
                 result = future.result()
                 if hasattr(result, "status") and result.status == "SUCCESS":
-                    text = result.document.export_to_markdown()
+                    text = result.document.export_to_text() if hasattr(result.document, 'export_to_text') else result.document.export_to_markdown()
                     results.append((path, text))
                 else:
                     errors.append((path, getattr(result, "status", "Unknown error")))
@@ -218,7 +232,7 @@ async def crawl_and_index_async(start_url, index_name=None):
             file_stats["errors"].append((file_url, err))
             log_msgs.append(f"Failed to download file: {file_url} | Error: {err}")
     # Process files with Docling
-    docling_results, docling_errors = process_files_with_docling(downloaded_files, max_workers=4)
+    docling_results, docling_errors = process_files_with_docling(downloaded_files)
     for path, text in docling_results:
         chunks = chunk_text(text)
         now = datetime.utcnow().isoformat()
