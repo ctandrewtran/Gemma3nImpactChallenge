@@ -2,6 +2,7 @@ from rag.ollama_utils import run_gemma3n, generate_embedding
 from rag.milvus_utils import list_indexes, search_embeddings, connect_milvus
 from langdetect import detect
 from langgraph.graph import StateGraph, END
+import os
 
 # --- State Definition ---
 # The state is a dictionary with keys:
@@ -103,20 +104,41 @@ def evaluation_node(state):
     state['evaluation'] = response
     return state
 
+CONTACTS_FILE = "contacts.txt"
+
+def load_contacts():
+    contacts = []
+    if os.path.exists(CONTACTS_FILE):
+        with open(CONTACTS_FILE, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    contacts.append(line)
+    return contacts
+
+def contacts_node(state):
+    # Load contacts and add to state
+    state['contacts'] = load_contacts()
+    return state
+
 def response_node(state):
     query = state['search_query']
     context_chunks = state['context_chunks']
     evaluation = state['evaluation']
     section = state['section']
+    contacts = state.get('contacts', [])
     context_text = "\n".join([c['text'] for c in context_chunks])
     citations = [f"Source: {c['url']} (Indexed: {c['date']})" for c in context_chunks]
     section_info = f"Section searched: {section}\n" if section else ""
+    # Provide contacts as a resource, not as part of the answer unless needed
+    contacts_instruction = (f"\nIf you determine the user needs to contact someone, you may use the following contact info: {', '.join(contacts)}" if contacts else "")
     prompt = (
         f"User question: {query}\n"
         f"Relevant information: {context_text}\n"
         f"Citations: {'; '.join(citations)}\n"
         f"Evaluation: {evaluation}\n"
         f"{section_info}"
+        f"{contacts_instruction}"
         "You are a local government assistant for a rural community. When answering, always quote directly from the provided information using quotation marks whenever possible. For each fact or statement, include a citation to the source document (URL and date). If you cannot find an answer in the provided context, say so and suggest contacting the local office. Use clear, trustworthy, and professional language. Include next steps and who to contact if more help is needed."
     )
     max_retries = 2
@@ -157,6 +179,7 @@ def rag_pipeline(user_query):
         'evaluation': None,
         'answer': None,
         'citations': None,
+        'contacts': None,
     }
     # Build the graph
     graph = StateGraph()
@@ -165,6 +188,7 @@ def rag_pipeline(user_query):
     graph.add_node('section_prediction', section_prediction_node)
     graph.add_node('query', query_node)
     graph.add_node('evaluation', evaluation_node)
+    graph.add_node('contacts', contacts_node)
     graph.add_node('response', response_node)
     graph.add_node('translation_back', translation_back_node)
     # Edges
@@ -172,7 +196,8 @@ def rag_pipeline(user_query):
     graph.add_edge('index_selection', 'section_prediction')
     graph.add_edge('section_prediction', 'query')
     graph.add_edge('query', 'evaluation')
-    graph.add_edge('evaluation', 'response')
+    graph.add_edge('evaluation', 'contacts')
+    graph.add_edge('contacts', 'response')
     graph.add_edge('response', 'translation_back')
     graph.add_edge('translation_back', END)
     # Run the workflow
