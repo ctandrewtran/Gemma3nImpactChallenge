@@ -6,6 +6,7 @@ from admin import scheduler
 from rag.ollama_utils import run_gemma3n
 import os
 from rag.agents import rag_pipeline
+from rag.agents import rag_pipeline_stream
 
 external_scripts = [
     "https://unpkg.com/dash.nprogress@latest/dist/dash.nprogress.js"
@@ -346,15 +347,40 @@ def login(n, username, password):
     prevent_initial_call=True)
 def chat_search(n, query):
     if n and query:
-        try:
-            answer, citations = rag_pipeline(query)
-            # Show answer, citations, and a trust-building note
+        from dash import no_update
+        node_status = {
+            'translation': 'Translating (if needed)...',
+            'index_selection': 'Selecting best index...',
+            'section_prediction': 'Predicting relevant section...',
+            'query': 'Extracting info...',
+            'evaluation': 'Reviewing answer...',
+            'contacts': 'Loading contact info...',
+            'response': 'Composing response...',
+            'translation_back': 'Translating answer back to your language...'
+        }
+        answer = None
+        citations = None
+        for update in rag_pipeline_stream(query):
+            node = list(update.keys())[0]
+            state = update[node]
+            # Show progress message for this node
+            if node != 'translation_back':
+                yield html.Div([
+                    html.P(node_status.get(node, f"Running {node}...")),
+                    dcc.Loading(type="circle")
+                ]), ""
+            # If this is the response node, show the answer preview
+            if node == 'response' and 'answer' in state:
+                answer = state['answer']
+                citations = state.get('citations', [])
+        # Final answer
+        if answer is not None:
             feedback_buttons = html.Div([
                 html.Span("Was this helpful? ", style={"marginRight": "1em"}),
                 dbc.Button("Yes", id="feedback-yes", color="success", n_clicks=0, style={"marginRight": "0.5em"}, **{"aria-label": "Mark answer as helpful"}),
                 dbc.Button("No", id="feedback-no", color="danger", n_clicks=0, **{"aria-label": "Mark answer as not helpful"})
             ], role="group", aria_label="Feedback buttons")
-            return (
+            yield (
                 html.Div([
                     html.P("Here's what I found for your question:"),
                     html.Div(answer, style={"marginBottom": "1em"}),
@@ -365,15 +391,9 @@ def chat_search(n, query):
                 ]),
                 feedback_buttons
             )
-        except Exception as e:
-            return (
-                html.Div([
-                    html.P("Sorry, something went wrong. Please try again or contact your local office."),
-                    html.Pre(str(e), style={"color": "#a00"})
-                ]),
-                ""
-            )
-    return "", ""
+        else:
+            yield html.Div([html.P("Sorry, something went wrong. Please try again or contact your local office.")]), ""
+    yield "", ""
 
 # --- Feedback Button Callbacks ---
 @app.callback(

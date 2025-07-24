@@ -205,4 +205,40 @@ def rag_pipeline(user_query):
     graph.add_edge('translation_back', END)
     # Run the workflow
     result = graph.run(state)
-    return result['answer'], result['citations'] 
+    return result['answer'], result['citations']
+
+def rag_pipeline_stream(user_query):
+    state = {
+        'user_query': user_query,
+        'source_lang': None,
+        'translated_query': None,
+        'index_name': None,
+        'section': None,
+        'search_query': None,
+        'context_chunks': None,
+        'evaluation': None,
+        'answer': None,
+        'citations': None,
+        'contacts': None,
+    }
+    graph = StateGraph()
+    graph.add_node('translation', translation_node)
+    graph.add_node('index_selection', index_selection_node)
+    graph.add_node('section_prediction', section_prediction_node)
+    graph.add_node('query', query_node)
+    graph.add_node('evaluation', evaluation_node)
+    graph.add_node('contacts', contacts_node)
+    graph.add_node('response', response_node)
+    graph.add_node('translation_back', translation_back_node)
+    graph.add_edge('translation', 'index_selection')
+    graph.add_edge('index_selection', 'section_prediction')
+    graph.add_edge('section_prediction', 'query')
+    graph.add_edge('query', 'evaluation')
+    graph.add_edge('evaluation', 'contacts')
+    graph.add_edge('contacts', 'response')
+    graph.add_edge('response', 'translation_back')
+    graph.add_edge('translation_back', END)
+    compiled = graph.compile()
+    for update in compiled.stream(state, stream_mode="updates"):
+        # update is a dict: {node_name: {state_key: value, ...}}
+        yield update 
