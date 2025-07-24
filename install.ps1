@@ -39,32 +39,30 @@ try {
 
 # Ensure Git is installed before cloning
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-    Write-Color "Git is not installed. Attempting to install Git using winget..." Yellow
-    if (Get-Command winget -ErrorAction SilentlyContinue) {
-        winget install --id Git.Git -e --source winget
-        if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-            Write-Color "Git installation failed. Please install Git manually from https://git-scm.com/download/win and rerun this script." Red
-            Read-Host "Press Enter to exit..."
-            exit 1
-        }
-        Write-Color "Git installed successfully." Green
-    } else {
-        Write-Color "winget is not available. Please install Git manually from https://git-scm.com/download/win and rerun this script." Red
-        Read-Host "Press Enter to exit..."
-        exit 1
-    }
+    Write-Color "Git is not installed. Please install Git from https://git-scm.com/download/win and rerun this script." Red
+    Read-Host "Press Enter to exit..."
+    exit 1
 }
 
 # Clone the repo if docker-compose.yml is not present
 if (-not (Test-Path "docker-compose.yml")) {
-    Write-Color "docker-compose.yml not found. Cloning the repository..." Cyan
-    git clone https://github.com/ctandrewtran/Gemma3nImpactChallenge.git .
-    if (-not (Test-Path "docker-compose.yml")) {
-        Write-Color "Failed to clone the repository or docker-compose.yml still not found." Red
+    Write-Color "docker-compose.yml not found. Cloning the repository into a temporary folder..." Cyan
+    $tmpDir = "AgenticRagForRuralGov_tmp"
+    if (Test-Path $tmpDir) { Remove-Item -Recurse -Force $tmpDir }
+    git clone https://github.com/ctandrewtran/Gemma3nImpactChallenge.git $tmpDir
+    if (-not (Test-Path "$tmpDir/docker-compose.yml")) {
+        Write-Color "Failed to clone the repository or docker-compose.yml not found in the temp folder." Red
         Read-Host "Press Enter to exit..."
         exit 1
     }
-    Write-Color "Repository cloned successfully." Green
+    # Move all files except .git from temp to current directory
+    Get-ChildItem -Path $tmpDir -Force | Where-Object { $_.Name -ne ".git" } | ForEach-Object {
+        $dest = Join-Path -Path "." -ChildPath $_.Name
+        if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }
+        Move-Item -Path $_.FullName -Destination $dest
+    }
+    Remove-Item -Recurse -Force $tmpDir
+    Write-Color "Repository files moved to current directory." Green
 }
 
 # Check for docker-compose.yml

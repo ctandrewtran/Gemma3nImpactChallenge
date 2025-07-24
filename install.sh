@@ -83,41 +83,32 @@ fi
 
 # Ensure git is installed before cloning
 if ! command -v git &> /dev/null; then
-    echo -e "${YELLOW}Git is not installed. Attempting to install git...${NC}"
-    if command -v apt-get &> /dev/null; then
-        sudo apt-get update && sudo apt-get install -y git
-    elif command -v yum &> /dev/null; then
-        sudo yum install -y git
-    elif command -v brew &> /dev/null; then
-        brew install git
-    else
-        echo -e "${RED}Could not detect package manager. Please install git manually and rerun this script.${NC}"
-        pause_for_debug
-        exit 1
-    fi
-    if ! command -v git &> /dev/null; then
-        echo -e "${RED}Git installation failed. Please install git manually and rerun this script.${NC}"
-        pause_for_debug
-        exit 1
-    fi
-    echo -e "${GREEN}Git installed successfully.${NC}"
+    echo -e "${RED}Git is not installed. Please install git (https://git-scm.com/download/) and rerun this script.${NC}"
+    pause_for_debug
+    exit 1
 fi
 
 # Clone the repo if docker-compose.yml is not present
 if [ ! -f "docker-compose.yml" ]; then
-    echo -e "${CYAN}docker-compose.yml not found. Cloning the repository...${NC}"
-    if ! command -v git &> /dev/null; then
-        echo -e "${RED}Git is not installed. Please install Git and rerun this script.${NC}"
+    echo -e "${CYAN}docker-compose.yml not found. Cloning the repository into a temporary folder...${NC}"
+    tmpDir="AgenticRagForRuralGov_tmp"
+    rm -rf "$tmpDir"
+    git clone https://github.com/ctandrewtran/Gemma3nImpactChallenge.git "$tmpDir"
+    if [ ! -f "$tmpDir/docker-compose.yml" ]; then
+        echo -e "${RED}Failed to clone the repository or docker-compose.yml not found in the temp folder.${NC}"
         pause_for_debug
         exit 1
     fi
-    git clone https://github.com/ctandrewtran/Gemma3nImpactChallenge.git .
-    if [ ! -f "docker-compose.yml" ]; then
-        echo -e "${RED}Failed to clone the repository or docker-compose.yml still not found.${NC}"
-        pause_for_debug
-        exit 1
-    fi
-    echo -e "${GREEN}Repository cloned successfully.${NC}"
+    # Move all files except .git from temp to current directory
+    shopt -s dotglob
+    for f in "$tmpDir"/*; do
+        [ "$(basename "$f")" = ".git" ] && continue
+        if [ -e "./$(basename "$f")" ]; then rm -rf "./$(basename "$f")"; fi
+        mv "$f" .
+    done
+    shopt -u dotglob
+    rm -rf "$tmpDir"
+    echo -e "${GREEN}Repository files moved to current directory.${NC}"
 fi
 
 echo -e "${CYAN}==> Building the app Docker image locally...${NC}"

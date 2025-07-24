@@ -25,6 +25,7 @@ All processing takes place and all data is stored locally. Only egress it to scr
 ## How to Set Up (No Experience Needed!)
 
 **⚠️ IMPORTANT:**
+- **You must have [Git installed](https://git-scm.com/download/) before running the install script.**
 - **Windows:** The script will now automatically update WSL (Windows Subsystem for Linux) before setup.
 - **Both Windows and Linux/macOS:** If you run the install script in a folder that does not contain this repo, it will automatically clone the repository so that `docker-compose.yml` and all files are available for setup.
 - **Windows:** Right-click PowerShell and choose **"Run as administrator"** before running the script below.
