@@ -81,6 +81,28 @@ else
     echo -e "${GREEN}Docker Compose is already installed.${NC}"
 fi
 
+# Ensure git is installed before cloning
+if ! command -v git &> /dev/null; then
+    echo -e "${YELLOW}Git is not installed. Attempting to install git...${NC}"
+    if command -v apt-get &> /dev/null; then
+        sudo apt-get update && sudo apt-get install -y git
+    elif command -v yum &> /dev/null; then
+        sudo yum install -y git
+    elif command -v brew &> /dev/null; then
+        brew install git
+    else
+        echo -e "${RED}Could not detect package manager. Please install git manually and rerun this script.${NC}"
+        pause_for_debug
+        exit 1
+    fi
+    if ! command -v git &> /dev/null; then
+        echo -e "${RED}Git installation failed. Please install git manually and rerun this script.${NC}"
+        pause_for_debug
+        exit 1
+    fi
+    echo -e "${GREEN}Git installed successfully.${NC}"
+fi
+
 # Clone the repo if docker-compose.yml is not present
 if [ ! -f "docker-compose.yml" ]; then
     echo -e "${CYAN}docker-compose.yml not found. Cloning the repository...${NC}"

@@ -37,14 +37,27 @@ try {
     Write-Color "WSL update failed or not needed." Yellow
 }
 
-# Clone the repo if docker-compose.yml is not present
-if (-not (Test-Path "docker-compose.yml")) {
-    Write-Color "docker-compose.yml not found. Cloning the repository..." Cyan
-    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-        Write-Color "Git is not installed. Please install Git and rerun this script." Red
+# Ensure Git is installed before cloning
+if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+    Write-Color "Git is not installed. Attempting to install Git using winget..." Yellow
+    if (Get-Command winget -ErrorAction SilentlyContinue) {
+        winget install --id Git.Git -e --source winget
+        if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+            Write-Color "Git installation failed. Please install Git manually from https://git-scm.com/download/win and rerun this script." Red
+            Read-Host "Press Enter to exit..."
+            exit 1
+        }
+        Write-Color "Git installed successfully." Green
+    } else {
+        Write-Color "winget is not available. Please install Git manually from https://git-scm.com/download/win and rerun this script." Red
         Read-Host "Press Enter to exit..."
         exit 1
     }
+}
+
+# Clone the repo if docker-compose.yml is not present
+if (-not (Test-Path "docker-compose.yml")) {
+    Write-Color "docker-compose.yml not found. Cloning the repository..." Cyan
     git clone https://github.com/ctandrewtran/Gemma3nImpactChallenge.git .
     if (-not (Test-Path "docker-compose.yml")) {
         Write-Color "Failed to clone the repository or docker-compose.yml still not found." Red
