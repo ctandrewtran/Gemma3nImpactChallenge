@@ -109,6 +109,12 @@ if [ ! -f "docker-compose.yml" ]; then
     shopt -u dotglob
     rm -rf "$tmpDir"
     echo -e "${GREEN}Repository files moved to current directory.${NC}"
+    # Print and log the full path of the current directory
+    fullPath="$(pwd)"
+    echo -e "${CYAN}Current installation directory: $fullPath${NC}"
+    echo "Installation directory: $fullPath" >> install.log
+    # cd into the current directory (redundant, but explicit)
+    cd "$fullPath"
 fi
 
 echo -e "${CYAN}==> Building the app Docker image locally...${NC}"

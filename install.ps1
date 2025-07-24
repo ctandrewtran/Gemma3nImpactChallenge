@@ -63,6 +63,12 @@ if (-not (Test-Path "docker-compose.yml")) {
     }
     Remove-Item -Recurse -Force $tmpDir
     Write-Color "Repository files moved to current directory." Green
+    # Print and log the full path of the current directory
+    $fullPath = Get-Location | Select-Object -ExpandProperty Path
+    Write-Color ("Current installation directory: $fullPath") Cyan
+    Add-Content -Path install.log -Value ("Installation directory: $fullPath")
+    # cd into the current directory (redundant in PowerShell, but explicit)
+    Set-Location $fullPath
 }
 
 # Check for docker-compose.yml
