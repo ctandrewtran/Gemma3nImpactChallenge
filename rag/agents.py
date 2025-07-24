@@ -1,61 +1,33 @@
 from rag.ollama_utils import run_gemma3n, generate_embedding
 from rag.milvus_utils import list_indexes, search_embeddings, connect_milvus
 from langdetect import detect
+from langgraph.graph import StateGraph, END
 
-# --- Translation Agent ---
-def translation_agent(query):
-    """
-    Detect language and translate to English if needed using Gemma 3n.
-    """
+# --- State Definition ---
+# The state is a dictionary with keys:
+# 'user_query', 'source_lang', 'translated_query', 'index_name', 'section', 'search_query', 'context_chunks', 'evaluation', 'answer', 'citations'
+
+def translation_node(state):
+    user_query = state['user_query']
     try:
-        lang = detect(query)
+        source_lang = detect(user_query)
     except Exception:
-        lang = 'en'
-    if lang != 'en':
-        prompt = f"Translate the following to English for a government search tool: {query}"
-        return run_gemma3n(prompt)
-    return query
+        source_lang = 'en'
+    if source_lang != 'en':
+        prompt = f"Translate the following to English for a government search tool: {user_query}"
+        translated_query = run_gemma3n(prompt)
+    else:
+        translated_query = user_query
+    state['source_lang'] = source_lang
+    state['translated_query'] = translated_query
+    return state
 
-# --- Section Prediction Agent ---
-def section_prediction_agent(query, index_name):
-    """
-    Use Gemma 3n to predict the best section/path for the query from available sections in the index.
-    """
-    # Get all unique sections from the index (Milvus)
-    col = connect_milvus(index_name)
-    # Query all unique section values (may need to scan all entities)
-    try:
-        # This is a simple way; for large collections, optimize with a separate section registry
-        all_sections = set()
-        for entities in col.query(expr=None, output_fields=["section"]):
-            section = entities.get("section")
-            if section:
-                all_sections.add(section)
-        sections = list(sorted(all_sections))
-    except Exception:
-        sections = []
-    if not sections:
-        return None
-    # Use LLM to pick the best section
-    prompt = (
-        f"User query: '{query}'\n"
-        f"Available website sections: {', '.join(sections)}\n"
-        "Which section is most relevant? Respond with the section path only."
-    )
-    response = run_gemma3n(prompt)
-    for s in sections:
-        if s.lower() in response.lower():
-            return s
-    return sections[0]  # fallback
-
-# --- Index Selection Agent ---
-def index_selection_agent(query):
-    """
-    Use Gemma 3n to select the best index for the query from available indexes.
-    """
+def index_selection_node(state):
+    query = state['translated_query']
     indexes = list_indexes()
     if not indexes:
-        return None
+        state['index_name'] = None
+        return state
     index_names = list(indexes.keys())
     index_descs = [f"{name}: {meta['description']}" for name, meta in indexes.items()]
     prompt = (
@@ -66,30 +38,61 @@ def index_selection_agent(query):
     response = run_gemma3n(prompt)
     for name in index_names:
         if name.lower() in response.lower():
-            return name
-    return index_names[0]
+            state['index_name'] = name
+            return state
+    state['index_name'] = index_names[0]
+    return state
 
-# --- Query Agent (Section-Aware) ---
-def query_agent(query, index_name, section=None, top_k=5):
-    """
-    Rewrite query for search, generate embedding, search selected index, retrieve top chunks.
-    If section is provided, filter search to that section.
-    """
+def section_prediction_node(state):
+    query = state['translated_query']
+    index_name = state['index_name']
+    if not index_name:
+        state['section'] = None
+        return state
+    col = connect_milvus(index_name)
+    try:
+        all_sections = set()
+        for entities in col.query(expr=None, output_fields=["section"]):
+            section = entities.get("section")
+            if section:
+                all_sections.add(section)
+        sections = list(sorted(all_sections))
+    except Exception:
+        sections = []
+    if not sections:
+        state['section'] = None
+        return state
+    prompt = (
+        f"User query: '{query}'\n"
+        f"Available website sections: {', '.join(sections)}\n"
+        "Which section is most relevant? Respond with the section path only."
+    )
+    response = run_gemma3n(prompt)
+    for s in sections:
+        if s.lower() in response.lower():
+            state['section'] = s
+            return state
+    state['section'] = sections[0]
+    return state
+
+def query_node(state):
+    query = state['translated_query']
+    index_name = state['index_name']
+    section = state['section']
     prompt = f"Rewrite the following user question to be as concise and search-friendly as possible for a government document search: {query}"
     search_query = run_gemma3n(prompt)
     embedding = generate_embedding(search_query)
     expr = None
     if section:
-        # Milvus expr for section filtering (exact match)
         expr = f'section == "{section}"'
-    results = search_embeddings(embedding, top_k=top_k, index_name=index_name, expr=expr)
-    return search_query, results
+    results = search_embeddings(embedding, top_k=5, index_name=index_name, expr=expr)
+    state['search_query'] = search_query
+    state['context_chunks'] = results
+    return state
 
-# --- Evaluation Agent ---
-def evaluator_agent(query, context_chunks):
-    """
-    Use Gemma 3n to check if the retrieved context is sufficient. If not, suggest fallback or clarification.
-    """
+def evaluation_node(state):
+    query = state['search_query']
+    context_chunks = state['context_chunks']
     context_text = "\n".join([c['text'] for c in context_chunks])
     prompt = (
         f"User question: {query}\n"
@@ -97,13 +100,14 @@ def evaluator_agent(query, context_chunks):
         "Does the context fully answer the question? Respond 'yes' or 'no' and explain briefly."
     )
     response = run_gemma3n(prompt)
-    return response
+    state['evaluation'] = response
+    return state
 
-# --- Response Agent ---
-def response_agent(query, context_chunks, evaluation, section=None, max_retries=2):
-    """
-    Generate a final answer with citations/links, trust-building language, and next steps.
-    """
+def response_node(state):
+    query = state['search_query']
+    context_chunks = state['context_chunks']
+    evaluation = state['evaluation']
+    section = state['section']
     context_text = "\n".join([c['text'] for c in context_chunks])
     citations = [f"Source: {c['url']} (Indexed: {c['date']})" for c in context_chunks]
     section_info = f"Section searched: {section}\n" if section else ""
@@ -115,45 +119,62 @@ def response_agent(query, context_chunks, evaluation, section=None, max_retries=
         f"{section_info}"
         "Write a clear, trustworthy answer for a user. You are acting on behalf of local government, keep your tone professional and informative. When possible, directly quote from the provided information in your answer (use quotation marks). Include citations/links, next steps, and who to contact if more help is needed."
     )
-    for attempt in range(max_retries):
+    max_retries = 2
+    for _ in range(max_retries):
         try:
             response = run_gemma3n(prompt)
             if response and response.strip() and not response.startswith("[Error"):
-                return response
+                state['answer'] = response
+                break
         except Exception:
-            pass
-    return ("Sorry, I was unable to generate an answer at this time. "
-            "Please try again or contact your local IT administrator.")
+            continue
+    else:
+        state['answer'] = ("Sorry, I was unable to generate an answer at this time. "
+                          "Please try again or contact your local IT administrator.")
+    state['citations'] = [c['url'] for c in context_chunks]
+    return state
 
-# --- .gov URL Enforcement ---
-def is_gov_url(url):
-    """
-    Enforce that only .gov URLs are accepted for indexing.
-    """
-    return url.lower().endswith('.gov') or '.gov/' in url.lower()
+def translation_back_node(state):
+    source_lang = state.get('source_lang', 'en')
+    answer = state.get('answer', '')
+    if source_lang != 'en' and answer:
+        prompt = f"Translate the following answer back to {source_lang} for a government search tool user: {answer}"
+        answer = run_gemma3n(prompt)
+        state['answer'] = answer
+    return state
 
-# --- Main RAG Pipeline (Section-Aware) ---
+# --- LangGraph Workflow ---
 def rag_pipeline(user_query):
-    """
-    Full agentic RAG pipeline: translation, index selection, section prediction, query, evaluation, response.
-    Returns the final answer and citations.
-    """
-    # 1. Translate if needed
-    translated_query = translation_agent(user_query)
-    # 2. Select index
-    index_name = index_selection_agent(translated_query)
-    if not index_name:
-        return "No search indexes available.", []
-    # 3. Predict section
-    section = section_prediction_agent(translated_query, index_name)
-    # 4. Query (section-aware)
-    search_query, context_chunks = query_agent(translated_query, index_name, section=section)
-    # 5. Evaluate (use search_query)
-    evaluation = evaluator_agent(search_query, context_chunks)
-    # 6. Respond (use search_query)
-    answer = response_agent(search_query, context_chunks, evaluation, section=section)
-    # 7. Collect citations
-    citations = [c['url'] for c in context_chunks]
-    return answer, citations
-
-# NOTE: During indexing, ensure 'section' (URL path) is stored in metadata for each chunk. 
+    # Initial state
+    state = {
+        'user_query': user_query,
+        'source_lang': None,
+        'translated_query': None,
+        'index_name': None,
+        'section': None,
+        'search_query': None,
+        'context_chunks': None,
+        'evaluation': None,
+        'answer': None,
+        'citations': None,
+    }
+    # Build the graph
+    graph = StateGraph()
+    graph.add_node('translation', translation_node)
+    graph.add_node('index_selection', index_selection_node)
+    graph.add_node('section_prediction', section_prediction_node)
+    graph.add_node('query', query_node)
+    graph.add_node('evaluation', evaluation_node)
+    graph.add_node('response', response_node)
+    graph.add_node('translation_back', translation_back_node)
+    # Edges
+    graph.add_edge('translation', 'index_selection')
+    graph.add_edge('index_selection', 'section_prediction')
+    graph.add_edge('section_prediction', 'query')
+    graph.add_edge('query', 'evaluation')
+    graph.add_edge('evaluation', 'response')
+    graph.add_edge('response', 'translation_back')
+    graph.add_edge('translation_back', END)
+    # Run the workflow
+    result = graph.run(state)
+    return result['answer'], result['citations'] 

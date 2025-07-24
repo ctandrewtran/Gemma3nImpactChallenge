@@ -11,3 +11,4 @@ langdetect
 ollama-client
 sqlite3
 docling 
+langgraph 
