@@ -10,6 +10,7 @@ import os
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import tempfile
+import re
 
 try:
     from docling.document_converter import DocumentConverter
@@ -23,6 +24,33 @@ MAX_DEPTH = 2  # How deep to crawl
 CHUNK_SIZE = 8192  # Number of characters per chunk (was 512)
 SUPPORTED_FILE_EXTS = [".pdf", ".xml", ".docx", ".xlsx", ".csv", ".html", ".htm"]
 LOG_FILE = "search_index.log"
+CONTACTS_FILE = "contacts.txt"
+
+# Utility to extract phone numbers and emails
+PHONE_REGEX = re.compile(r"\b(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}\b")
+EMAIL_REGEX = re.compile(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+")
+
+def extract_contacts(text):
+    phones = set(PHONE_REGEX.findall(text))
+    emails = set(EMAIL_REGEX.findall(text))
+    return phones, emails
+
+def save_contacts(phones, emails):
+    # Append unique contacts to the contacts file
+    existing = set()
+    if os.path.exists(CONTACTS_FILE):
+        with open(CONTACTS_FILE, "r", encoding="utf-8") as f:
+            for line in f:
+                existing.add(line.strip())
+    with open(CONTACTS_FILE, "a", encoding="utf-8") as f:
+        for phone in phones:
+            if phone not in existing:
+                f.write(f"Phone: {phone}\n")
+                existing.add(phone)
+        for email in emails:
+            if email not in existing:
+                f.write(f"Email: {email}\n")
+                existing.add(email)
 
 
 def log_admin(msg):
@@ -111,6 +139,10 @@ async def scrape_page(session, url, base_url, seen_urls, depth, file_queue, log_
     soup = BeautifulSoup(html, "html.parser")
     texts = [t for t in soup.stripped_strings]
     page_text = "\n".join(texts)
+    # --- Extract and save contacts ---
+    phones, emails = extract_contacts(page_text)
+    if phones or emails:
+        save_contacts(phones, emails)
     image_descriptions = []
     for img in soup.find_all("img"):
         src = img.get("src")
